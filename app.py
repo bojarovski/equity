@@ -134,8 +134,6 @@ def clear_db():
     conn.commit()
     conn.close()
 
-from seed import seed_data
-
 init_db()
 
 # --- CALCULATION ENGINE ---
@@ -234,11 +232,6 @@ submissions = get_all_submissions()
 
 st.sidebar.title("Админ Алатки")
 st.sidebar.write(f"**Поднесени форми: {len(submissions)} / {len(TEAM_MEMBERS)}**")
-
-if st.sidebar.button("Генерирај Тест Податоци (Seed)"):
-    seed_data()
-    st.sidebar.success("Успешно генерирани лажни податоци!")
-    st.rerun()
 
 if st.sidebar.button("Избриши ги сите податоци (Reset)"):
     clear_db()
