@@ -169,12 +169,15 @@ def calculate_results(submissions):
                     results[member]["scale_peer_sum"] += scale_sum
                     results[member]["scale_peer_count"] += 1
                 
-        # Process Peer Selection votes (1 point per vote)
-        for q, voted_person in data.get("peer_selections", {}).items():
-            if voted_person == evaluator:
-                results[voted_person]["votes_self"] += 1
-            else:
-                results[voted_person]["votes_peer_sum"] += 1
+        # Process Co-Founder Votes
+        if "cofounder_count" in data:
+            total_cofounder_votes += data["cofounder_count"]
+            num_cofounder_voters += 1
+            
+    # Calculate average Co-Founder count
+    avg_cofounders = round(total_cofounder_votes / num_cofounder_voters) if num_cofounder_voters > 0 else 1
+    # Ensure it's between 1 and num_members
+    avg_cofounders = max(1, min(avg_cofounders, num_members))
     
     final_scores = []
     
@@ -209,7 +212,8 @@ def calculate_results(submissions):
             "Ранк поени (35%)": round(score_rank, 2),
             "Скала поени (45%)": round(score_scale, 2),
             "Бонус улоги (20%)": round(score_votes, 2),
-            "Вкупно (Merit)": round(merit_score, 2)
+            "Вкупно (Merit)": round(merit_score, 2),
+            "Титула": "Член"
         })
         
     df = pd.DataFrame(final_scores)
@@ -220,9 +224,16 @@ def calculate_results(submissions):
         df["Предложен Удел (%)"] = (df["Вкупно (Merit)"] / total_merit) * 100
     else:
         df["Предложен Удел (%)"] = 100 / num_members
-        
+    
+    # Dynamic Co-Founder Titles logic
+    df = df.sort_values(by="Вкупно (Merit)", ascending=False).reset_index(drop=True)
+    
+    for i in range(len(df)):
+        if i < avg_cofounders:
+            df.at[i, "Титула"] = "Co-Founder 👑"
+            
     df["Предложен Удел (%)"] = df["Предложен Удел (%)"].apply(lambda x: f"{round(x, 2)}%")
-    return df
+    return df, avg_cofounders
 
 # --- UI ---
 st.title("Findzzer Equity Евалуација")
@@ -245,10 +256,12 @@ if len(submissions) >= len(TEAM_MEMBERS):
 if len(submissions) >= len(TEAM_MEMBERS):
     st.header("🏆 Финална 'Fairness' Табела")
     st.success("Сите 5 членови успешно поднесоа евалуација! Ова се конечните резултати.")
-    df_results = calculate_results(submissions)
+    df_results, decided_cofounders = calculate_results(submissions)
+    
+    st.markdown(f"**Врз база на гласовите, тимот одлучи дека Findzzer треба да има {decided_cofounders} Co-Founder(и).** Тие титули се доделени на луѓето со најголем Merit резултат.")
     
     st.dataframe(
-        df_results.sort_values(by="Вкупно (Merit)", ascending=False),
+        df_results,
         use_container_width=True,
         hide_index=True
     )
@@ -316,7 +329,11 @@ if not st.session_state['read_explanation']:
     
     Во овој момент ние не заработуваме ништо. За да продолжиме да работиме и да го изградиме ова во нешто големо, клучната работа е **мотивацијата**. Единственото нешто што вреди во моментов е самата идеја и потенциалот на продуктот, и тоа парче мора да се подели максимално фер – строго според **вложен труд, залагање, преземен ризик и покажан интерес**.
     
-    Јас сакам секој да го добие точно тоа што го заслужил со својата вистинска работа, ниту процент повеќе, ниту процент помалку. Ова е направено за сите да бидеме рамноправни, сите транспарентно да дадеме мислење, и алгоритмот фер да пресуди. Токму на ова се базира целиот прашалник и евалуација.“
+    Јас сакам секој да го добие точно тоа што го заслужил со својата вистинска работа, ниту процент повеќе, ниту процент помалку. Ова е направено за сите да бидеме рамноправни, сите транспарентно да дадеме мислење, и алгоритмот фер да пресуди. Токму на ова се базира целиот прашалник и евалуација.
+    
+    Знам и многу добро сум свесен дека **без било кој од нас, тимот немаше да биде ова што е денес.** Секој од нас имаше некоја своја „Главна Улога“ и од моја перспектива за тие главни улоги сите сме тука некаде, изедначени сме. Меѓутоа сите преземавме и многу **споредни улоги**, и токму тие споредни улоги и тој дополнителен труд се тоа што ја прави вистинската разлика! Затоа ова е многу тешка и битна задача за сите нас.
+    
+    **Дополнително, за презентациите пред инвеститори потребни ни се точни титули 'Co-Founders'.** Непишано правило е дека ако некој има над 51%, тогаш логично е да има само 1 founder. Меѓутоа, бидејќи градиме фер култура, оставам вие да изгласате: Колку 'Co-Founders' треба да има Findzzer (1, 2, 3...)? Вашите гласови на крајот се усредуваат, и титулите автоматски им се доделуваат на оние што избиле први врз основа на нивната заслуга.“
     """)
     st.write("")
     
@@ -365,14 +382,23 @@ with st.container():
         st.caption("Кликнете и влечете ги имињата во кутијата или селектирајте ги по правилен редослед. Задожително селектирај ги сите 5 луѓе за секое прашање според заслуга.")
         
         form_data = {
+            "cofounder_count": 1,
             "rankings": {}, 
             "peer_selections": {}, 
             "scale_ratings": {member: {} for member in TEAM_MEMBERS},
             "anonymous_feedback": {member: {} for member in TEAM_MEMBERS}
         }
         
+        st.markdown("---")
+        st.subheader("Дел 0: Структура на Основачи")
+        st.caption("Како што кажа Марио, секој тим мора да има дефинирана бројка на 'Co-Founders' за пред инвеститори и апликации.")
+        form_data["cofounder_count"] = st.slider("Според тебе, колку лидери (Co-Founders) треба да има Findzzer?", min_value=1, max_value=len(TEAM_MEMBERS), value=2, step=1)
+        
+        st.markdown("---")
+        st.subheader("Дел 1: Рангирање од 1 до 5 (Најдобриот прв)")
+        st.caption("Кликнете и влечете ги имињата во кутијата или селектирајте ги по правилен редослед. Задожително селектирај ги сите 5 луѓе за секое прашање според заслуга.")
+        
         for item in RANKING_QUESTIONS:
-            st.markdown(f"#### {item['q']}")
             st.caption(f"_{item['desc']}_")
             # In Streamlit, multiselect enforces order of selection.
             ranking_choice = st.multiselect(
