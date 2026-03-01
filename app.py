@@ -3,6 +3,7 @@ import sqlite3
 import json
 import pandas as pd
 from deep_translator import GoogleTranslator
+import seed
 
 def anonymize_feedback_with_ai(strength, weakness):
     try:
@@ -299,6 +300,11 @@ st.sidebar.write(f"**Поднесени форми: {len(submissions)} / {len(TE
 if st.sidebar.button("Избриши ги сите податоци (Reset)"):
     clear_db()
     st.sidebar.success("Базата е избришана!")
+    st.rerun()
+
+if st.sidebar.button("Пополни со Тест Податоци (Seed)"):
+    seed.seed_database()
+    st.sidebar.success("Вметнато е тест поднесување за сите членови!")
     st.rerun()
     
 if len(submissions) >= len(TEAM_MEMBERS):
