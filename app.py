@@ -439,7 +439,7 @@ with st.container():
         for item in PEER_QUESTIONS:
             st.markdown(f"#### {item['q']}")
             st.caption(f"_{item['desc']}_")
-            val = st.radio("Избери:", TEAM_MEMBERS, horizontal=True, key=f"peer_{item['q']}")
+            val = st.radio("Избери:", TEAM_MEMBERS, index=None, horizontal=True, key=f"peer_{item['q']}")
             form_data["peer_selections"][item['q']] = val
             st.write("")
         
@@ -480,6 +480,13 @@ with st.container():
                 ready_to_submit = False
                 st.warning("За да поднесеш, мора да ги избереш/рангираш сите 5 луѓе во сите прашања од Дел 1.")
                 break
+                
+        if ready_to_submit:
+            for q, p in form_data["peer_selections"].items():
+                if p is None:
+                    ready_to_submit = False
+                    st.warning("За да поднесеш, мора да избереш личност за секоја улога во Дел 2.")
+                    break
                 
         # Validate all radical candor fields are filled
         candor_filled = True
