@@ -43,7 +43,8 @@ SCALE_QUESTIONS = [
 IMPACT_QUESTIONS = [
     "Тековна и Идна Временска Посветеност",
     "Двигател на стартапот (Driver vs Fixer)",
-    "Досегашен мерлив придонес (Past Contribution)"
+    "Досегашен мерлив придонес (Past Contribution)",
+    "Жртвување за тимот (Его настрана)"
 ]
 
 MOCK_STRENGTHS = [
