@@ -167,6 +167,7 @@ def calculate_results(submissions):
                for member in TEAM_MEMBERS}
     
     num_members = len(TEAM_MEMBERS)
+    num_peers = num_members - 1
     total_cofounder_votes = 0
     num_cofounder_voters = 0
     
