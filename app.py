@@ -117,13 +117,7 @@ SCALE_QUESTIONS = [
     {"q": "Конзистентност во работата", "desc": "Дали темпото на работа е исто секој ден, или има огромни осцилации (една недела 24/7, следните две недели го нема)? *(1 = Огромни осцилации и исчезнувања, 10 = Роботски конзистентен секој ден)*"}
 ]
 
-# 4. Време, Придонес и Амбиција (Од 1 до 10)
-IMPACT_QUESTIONS = [
-    {"q": "Тековна и Идна Временска Посветеност", "desc": "Колку време неделно оваа личност реално посветува моментално, и колку планира/има капацитет да посвети во иднина? *(1 = Многу слабо време, како хоби, 10 = Full-time посветеност, Findzzer му е главен приоритет)*"},
-    {"q": "Двигател на стартапот (Driver vs Fixer)", "desc": "Дали оваа личност е 'двигател' на идеите (зема активно учество во product vision, sales, pitching, стратегија) или е повеќе техничка поддршка/извршител? *(1 = Исклучиво извршител/поддршка, 10 = Главен двигател и креатор на визијата/бизнисот)*"},
-    {"q": "Досегашен мерлив придонес (Past Contribution)", "desc": "Колкав е досегашниот РЕАЛЕН и физички придонес (во форма на напишан код, завршен дизајн, инвестирани пари, донесени партнери/корисници)? *(1 = Речиси никаков мерлив придонес досега, 10 = Непроценлив досегашен придонес без кој немаше да постоиме)*"},
-    {"q": "Жртвување за тимот (Его настрана)", "desc": "Дали си спремен/на да ги ставиш интересите на стартапот пред твоите (на пример да се снимаш на ТВ, да пичираш пред инвеститори, или да преземеш работа што ниту ја знаеш ниту би ја направил, само за доброто на тимот)? *(1 = Апсолутно не би излегол од комфорната зона, 10 = Би направил буквално сè што е неопходно за успехот на Findzzer)*"}
-]
+# IMPACT_QUESTIONS is removed. We use hardcoded custom UI elements for Part 4.
 
 DB_FILE = "evaluations.db"
 
@@ -196,15 +190,23 @@ def calculate_results(submissions):
                     results[member]["scale_peer_sum"] += scale_sum
                     results[member]["scale_peer_count"] += 1
                 
-        # Process Impact ratings (1 to 10)
-        for member in TEAM_MEMBERS:
-            if member in data.get("impact_ratings", {}):
-                impact_sum = sum(data["impact_ratings"][member].values())
-                if member == evaluator:
-                    results[member]["impact_self"] += impact_sum
-                else:
-                    results[member]["impact_peer_sum"] += impact_sum
-                    results[member]["impact_peer_count"] += 1
+        # Process Public Pact
+        if "public_pact" in data and evaluator in TEAM_MEMBERS:
+            pact = data["public_pact"]
+            impact_sum = 0
+            # Current time: 1-16 -> Up to 10 points
+            impact_sum += pact["time_curr"]["val"] * (10 / 16)
+            # Future time: 1-16 -> Up to 10 points 
+            impact_sum += pact["time_fut"]["val"] * (10 / 16)
+            # Past contribution: 1-10 -> Up to 10 points
+            impact_sum += pact["past"]["val"]
+            # Sacrifice: Yes = 5, No = 0
+            if pact["sacrifice"]["val"] == "Да":
+                impact_sum += 5
+            # Driver roles: 1 pt per role, max 5 points
+            impact_sum += min(len(pact["driver"]["val"]), 5)
+            
+            results[evaluator]["impact_self"] = impact_sum
                 
         # Process Co-Founder Votes
         if "cofounder_count" in data:
@@ -242,7 +244,7 @@ def calculate_results(submissions):
         MAX_RANK_RAW = len(RANKING_QUESTIONS) * num_members  
         MAX_SCALE_RAW = len(SCALE_QUESTIONS) * 10            
         MAX_VOTES_RAW = len(PEER_QUESTIONS)                  
-        MAX_IMPACT_RAW = len(IMPACT_QUESTIONS) * 10
+        MAX_IMPACT_RAW = 40
         
         score_rank = (weighted_rank_points / MAX_RANK_RAW) * 25 if MAX_RANK_RAW else 0
         score_scale = (weighted_scale_points / MAX_SCALE_RAW) * 35 if MAX_SCALE_RAW else 0
@@ -350,6 +352,22 @@ if len(submissions) >= len(TEAM_MEMBERS):
         """)
     
     st.markdown("---")
+    st.header("📜 Јавен Договор на Основачите (Дел 4)")
+    st.markdown("Ова се ветувањата, капацитетите и амбициите кои секој член јавно ги декларираше за себе.")
+    
+    for member in TEAM_MEMBERS:
+        with st.expander(f"📌 {member} - Јавен Договор"):
+            if member in submissions and "public_pact" in submissions[member] and "time_curr" in submissions[member]["public_pact"]:
+                pact = submissions[member]["public_pact"]
+                st.markdown(f"**Моментално време ({pact['time_curr']['val']} ч/неделно):** {pact['time_curr']['desc']}")
+                st.markdown(f"**Планирано време во иднина ({pact['time_fut']['val']} ч/неделно):** {pact['time_fut']['desc']}")
+                st.markdown(f"**Удел(Двигател) ({', '.join(pact['driver']['val'])}):** {pact['driver']['desc']}")
+                st.markdown(f"**Сопствен придонес досега ({pact['past']['val']}/10):** {pact['past']['desc']}")
+                st.markdown(f"**Жртвување за тимот ({pact['sacrifice']['val']}):** {pact['sacrifice']['desc']}")
+            else:
+                st.warning("Нема податоци.")
+
+    st.markdown("---")
     st.header("💬 Анонимен Фидбек (Радикална Искреност)")
     st.markdown("Мислењето на другите за тебе е најголемиот подарок за личен развој. Овие коментари се строго анонимни и не влијаат на процентот (equity), туку служат за тимски раст.")
     
@@ -437,7 +455,7 @@ with st.container():
             "rankings": {}, 
             "peer_selections": {}, 
             "scale_ratings": {member: {} for member in TEAM_MEMBERS},
-            "impact_ratings": {member: {} for member in TEAM_MEMBERS},
+            "public_pact": {"time_curr": {}, "time_fut": {}, "driver": {}, "past": {}, "sacrifice": {}},
             "anonymous_feedback": {member: {} for member in TEAM_MEMBERS}
         }
         
@@ -493,15 +511,37 @@ with st.container():
                         form_data["scale_ratings"][member][item['q']] = val
                     
         st.markdown("---")
-        st.subheader("Дел 4: Време, Придонес и Амбиција (Клучни Стартап Метрики)")
-        st.caption("Овие 3 прашања се ЛИЧНИ и ги одговараш исклучиво за себе. Биди максимално реален и искрен. **(1 = Најслабо / Воопшто не се согласувам, 10 = Најдобро / Целосно се согласувам)**.")
+        st.subheader("Дел 4: Време, Придонес и Амбиција (ЈАВНА СЕКЦИЈА)")
+        st.info("ВНИМАНИЕ: Овој дел НЕ е анонимен! Одговорите овде претставуваат твој јавен 'договор' со тимот кој ќе биде прикажан на финалната табела. Овие прашања ги одговараш исклучиво за себе.")
         
-        for item in IMPACT_QUESTIONS:
-            with st.expander(f"🔥 {item['q']}", expanded=True):
-                st.markdown(f"{item['desc']}")
-                st.write("")
-                val = st.slider(f"Твоја оцена ({evaluator}):", min_value=1, max_value=10, value=5, step=1, key=f"impact_{evaluator}_{item['q']}")
-                form_data["impact_ratings"][evaluator][item['q']] = val
+        with st.expander("🔥 Тековна и Идна Временска Посветеност", expanded=True):
+            st.markdown("Колку време неделно реално посветуваш моментално, и колку планираш/имаш капацитет да посветиш во иднина?")
+            val_time_curr = st.slider("Моментални часови неделно:", 1, 16, 8, key="time_curr")
+            desc_time_curr = st.text_input("Кратко објаснување (На што ги трошиш?):", key="desc_tc")
+            val_time_fut = st.slider("Идни часови неделно (Капацитет):", 1, 16, 8, key="time_fut")
+            desc_time_fut = st.text_input("Кратко објаснување (Зошто? Дали ќе одиш full-time?):", key="desc_tf")
+            
+        with st.expander("🔥 Двигател на стартапот (Driver vs Fixer)", expanded=True):
+            st.markdown("Дали си 'двигател' на идеите или си повеќе техничка поддршка/извршител?")
+            val_driver = st.multiselect("Избери каде земаш активно учество:", ["Product Vision", "Sales", "Pitching", "Стратегија", "Техничка Поддршка", "Execution"], key="driver")
+            desc_driver = st.text_input("Кратко објаснување (Што точно правиш во овие области?):", key="desc_dr")
+            
+        with st.expander("🔥 Досегашен мерлив придонес", expanded=True):
+            val_past = st.slider("Реален и физички придонес досега (1 = Речиси никаков, 10 = Непроценлив):", 1, 10, 5, key="past_contrib")
+            desc_past = st.text_input("Кратко објаснување (Што точно си испорачал досега?):", key="desc_past")
+            
+        with st.expander("🔥 Жртвување за тимот (Его настрана)", expanded=True):
+            st.markdown("Дали си спремен/на да ги ставиш интересите на стартапот пред твоите?")
+            val_sac = st.radio("Избери:", ["Да", "Не"], index=None, horizontal=True, key="sacrifice")
+            desc_sac = st.text_input("Кратко објаснување (Зошто Да/Не? Што не би направил?):", key="desc_sac_txt")
+
+        form_data["public_pact"] = {
+            "time_curr": {"val": val_time_curr, "desc": desc_time_curr},
+            "time_fut": {"val": val_time_fut, "desc": desc_time_fut},
+            "driver": {"val": val_driver, "desc": desc_driver},
+            "past": {"val": val_past, "desc": desc_past},
+            "sacrifice": {"val": val_sac, "desc": desc_sac}
+        }
                         
         st.markdown("---")
         st.subheader("Дел 5: Радикална Транспарентност (Анонимен Текст)")
@@ -541,8 +581,15 @@ with st.container():
                 ready_to_submit = False
                 break
                 
-        if not candor_filled:
-            st.warning("За да поднесеш, мора да ги пополниш сите полиња со текст во Дел 5 (За сите луѓе).")
+        # Validate public pact fields
+        pact_filled = True
+        pact = form_data["public_pact"]
+        if not pact["time_curr"]["desc"].strip() or not pact["time_fut"]["desc"].strip() or not pact["driver"]["desc"].strip() or not pact["past"]["desc"].strip() or not pact["sacrifice"]["desc"].strip() or pact["sacrifice"]["val"] is None or len(pact["driver"]["val"]) == 0:
+            pact_filled = False
+            ready_to_submit = False
+            
+        if not pact_filled:
+            st.warning("За да поднесеш, мора да ги пополниш сите полиња (и кратките објаснувања) во Јавната Секција (Дел 4).")
                 
         if ready_to_submit:
             if st.button("Испрати ја Анонимната Евалуација", type="primary"):

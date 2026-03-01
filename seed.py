@@ -40,12 +40,7 @@ SCALE_QUESTIONS = [
     "Конзистентност во работата"
 ]
 
-IMPACT_QUESTIONS = [
-    "Тековна и Идна Временска Посветеност",
-    "Двигател на стартапот (Driver vs Fixer)",
-    "Досегашен мерлив придонес (Past Contribution)",
-    "Жртвување за тимот (Его настрана)"
-]
+# Removed IMPACT_QUESTIONS. We use direct generation for public_pact.
 
 MOCK_STRENGTHS = [
     "Секогаш е тука кога најмногу гори.",
@@ -76,7 +71,13 @@ def seed_data():
             "rankings": {},
             "peer_selections": {},
             "scale_ratings": {member: {} for member in TEAM_MEMBERS},
-            "impact_ratings": {member: {} for member in TEAM_MEMBERS},
+            "public_pact": {
+                "time_curr": {"val": random.randint(5, 16), "desc": "Работам после работа навечер до 2 саат по полноќ."},
+                "time_fut": {"val": random.randint(8, 16), "desc": "Планирам да се префрлам скроз ако добиеме прва инвестиција."},
+                "driver": {"val": [random.choice(["Product Vision", "Sales", "Pitching", "Стратегија", "Техничка Поддршка", "Execution"])], "desc": "Постојано давам нови идеи за маркетинг и развој."},
+                "past": {"val": random.randint(4, 10), "desc": "Ја изградив првата верзија на продуктот без ничија помош."},
+                "sacrifice": {"val": random.choice(["Да", "Не"]), "desc": "Немам проблем да се бламирам пред инвеститори на јавен настан."}
+            },
             "anonymous_feedback": {member: {} for member in TEAM_MEMBERS}
         }
         
@@ -90,17 +91,13 @@ def seed_data():
         for q in PEER_QUESTIONS:
             data["peer_selections"][q] = random.choice(TEAM_MEMBERS)
             
-        # Scale & Impact & Feedback
+        # Scale & Feedback
         for member in TEAM_MEMBERS:
             for q in SCALE_QUESTIONS:
                 if member == evaluator:
                     data["scale_ratings"][member][q] = random.randint(7, 10)
                 else:
                     data["scale_ratings"][member][q] = random.randint(4, 10)
-                    
-            for q in IMPACT_QUESTIONS:
-                if member == evaluator:
-                    data["impact_ratings"][member][q] = random.randint(7, 10)
             
             # Anonymous Feedback
             data["anonymous_feedback"][member] = {
