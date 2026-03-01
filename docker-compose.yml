@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  streamlit-app:
+    build: .
+    container_name: findzzer-equity-app
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./evaluations.db:/app/evaluations.db
+    restart: unless-stopped
