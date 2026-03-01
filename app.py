@@ -117,6 +117,13 @@ SCALE_QUESTIONS = [
     {"q": "Конзистентност во работата", "desc": "Дали темпото на работа е исто секој ден, или има огромни осцилации (една недела 24/7, следните две недели го нема)? *(1 = Огромни осцилации и исчезнувања, 10 = Роботски конзистентен секој ден)*"}
 ]
 
+# 4. Време, Придонес и Амбиција (Од 1 до 10)
+IMPACT_QUESTIONS = [
+    {"q": "Тековна и Идна Временска Посветеност", "desc": "Колку време неделно оваа личност реално посветува моментално, и колку планира/има капацитет да посвети во иднина? *(1 = Многу слабо време, како хоби, 10 = Full-time посветеност, Findzzer му е главен приоритет)*"},
+    {"q": "Двигател на стартапот (Driver vs Fixer)", "desc": "Дали оваа личност е 'двигател' на идеите (зема активно учество во product vision, sales, pitching, стратегија) или е повеќе техничка поддршка/извршител? *(1 = Исклучиво извршител/поддршка, 10 = Главен двигател и креатор на визијата/бизнисот)*"},
+    {"q": "Досегашен мерлив придонес (Past Contribution)", "desc": "Колкав е досегашниот РЕАЛЕН и физички придонес (во форма на напишан код, завршен дизајн, инвестирани пари, донесени партнери/корисници)? *(1 = Речиси никаков мерлив придонес досега, 10 = Непроценлив досегашен придонес без кој немаше да постоиме)*"}
+]
+
 DB_FILE = "evaluations.db"
 
 # --- DATABASE SETUP ---
@@ -159,7 +166,8 @@ def calculate_results(submissions):
     # Initializes metric trackers
     results = {member: {"rank_self": 0, "rank_peer_sum": 0, "rank_peer_count": 0,
                          "scale_self": 0, "scale_peer_sum": 0, "scale_peer_count": 0,
-                         "votes_self": 0, "votes_peer_sum": 0, "votes_peer_count": 0} 
+                         "votes_self": 0, "votes_peer_sum": 0, "votes_peer_count": 0,
+                         "impact_self": 0, "impact_peer_sum": 0, "impact_peer_count": 0} 
                for member in TEAM_MEMBERS}
     
     num_members = len(TEAM_MEMBERS)
@@ -187,6 +195,16 @@ def calculate_results(submissions):
                     results[member]["scale_peer_sum"] += scale_sum
                     results[member]["scale_peer_count"] += 1
                 
+        # Process Impact ratings (1 to 10)
+        for member in TEAM_MEMBERS:
+            if member in data.get("impact_ratings", {}):
+                impact_sum = sum(data["impact_ratings"][member].values())
+                if member == evaluator:
+                    results[member]["impact_self"] += impact_sum
+                else:
+                    results[member]["impact_peer_sum"] += impact_sum
+                    results[member]["impact_peer_count"] += 1
+                
         # Process Co-Founder Votes
         if "cofounder_count" in data:
             total_cofounder_votes += data["cofounder_count"]
@@ -204,32 +222,38 @@ def calculate_results(submissions):
         peer_rank_avg = metrics["rank_peer_sum"] / num_peers if num_peers > 0 else 0
         peer_scale_avg = metrics["scale_peer_sum"] / num_peers if num_peers > 0 else 0
         peer_vote_avg = metrics["votes_peer_sum"] / num_peers if num_peers > 0 else 0
+        peer_impact_avg = metrics["impact_peer_sum"] / num_peers if num_peers > 0 else 0
         
         # Self scores
         self_rank = metrics["rank_self"]
         self_scale = metrics["scale_self"]
         self_vote = metrics["votes_self"]
+        self_impact = metrics["impact_self"]
         
         # Weighted Combining (80% Peer, 20% Self)
         weighted_rank_points = (self_rank * 0.2) + (peer_rank_avg * 0.8)
         weighted_scale_points = (self_scale * 0.2) + (peer_scale_avg * 0.8)
         weighted_vote_points = (self_vote * 0.2) + (peer_vote_avg * 0.8)
+        weighted_impact_points = (self_impact * 0.2) + (peer_impact_avg * 0.8)
         
         MAX_RANK_RAW = len(RANKING_QUESTIONS) * num_members  
         MAX_SCALE_RAW = len(SCALE_QUESTIONS) * 10            
         MAX_VOTES_RAW = len(PEER_QUESTIONS)                  
+        MAX_IMPACT_RAW = len(IMPACT_QUESTIONS) * 10
         
-        score_rank = (weighted_rank_points / MAX_RANK_RAW) * 35 if MAX_RANK_RAW else 0
-        score_scale = (weighted_scale_points / MAX_SCALE_RAW) * 45 if MAX_SCALE_RAW else 0
-        score_votes = (weighted_vote_points / MAX_VOTES_RAW) * 20 if MAX_VOTES_RAW else 0
+        score_rank = (weighted_rank_points / MAX_RANK_RAW) * 25 if MAX_RANK_RAW else 0
+        score_scale = (weighted_scale_points / MAX_SCALE_RAW) * 35 if MAX_SCALE_RAW else 0
+        score_votes = (weighted_vote_points / MAX_VOTES_RAW) * 15 if MAX_VOTES_RAW else 0
+        score_impact = (weighted_impact_points / MAX_IMPACT_RAW) * 25 if MAX_IMPACT_RAW else 0
         
-        merit_score = score_rank + score_scale + score_votes
+        merit_score = score_rank + score_scale + score_votes + score_impact
         
         final_scores.append({
             "Член на тим": member,
-            "Ранк поени (35%)": round(score_rank, 2),
-            "Скала поени (45%)": round(score_scale, 2),
-            "Бонус улоги (20%)": round(score_votes, 2),
+            "Ранк (25%)": round(score_rank, 2),
+            "Скала (35%)": round(score_scale, 2),
+            "Бонус Улоги (15%)": round(score_votes, 2),
+            "Придонес (25%)": round(score_impact, 2),
             "Вкупно (Merit)": round(merit_score, 2),
             "Титула": "Член"
         })
@@ -290,9 +314,10 @@ if len(submissions) >= len(TEAM_MEMBERS):
     
     Вкупната "Merit" оцена е генерирана од 100 поени, поделени на следниов начин:
     
-    1. **Дел 1: Рангирање (Од 1 до 5) носи 35% од поените.** (Добиваш максимум 5 поени ако те ставиле прв, и само 1 поен ако те ставиле последен за тоа прашање).
-    2. **Дел 2: Специфична стартап улога носи 20% од поените како бонус.** (Секој пат кога некој ќе те избере дека ти си 'Моторот' или 'Визионерот', добиваш цврсти поени).
-    3. **Дел 3: Скала на квалитет (Од 1 до 10) носи 45% од поените.** (Вреднува конзистентност, посветеност и технички квалитет).
+    1. **Дел 1: Рангирање (Од 1 до 5) носи 25% од поените.** (Добиваш максимум 5 поени ако те ставиле прв, и само 1 поен ако те ставиле последен за тоа прашање).
+    2. **Дел 2: Специфична стартап улога носи 15% од поените како бонус.** (Секој пат кога некој ќе те избере дека ти си 'Моторот' или 'Визионерот', добиваш цврсти поени).
+    3. **Дел 3: Скала на квалитет (Од 1 до 10) носи 35% од поените.** (Вреднува конзистентност, посветеност и технички квалитет).
+    4. **Дел 4: Време, Придонес и Амбиција (1 до 10) носи 25% од поените.** (Најбитниот стартап дел: Временска посветеност, минат придонес и склоност кон Sales/Визија).
     """)
     
     with st.expander("Детална математичка формула за калкулација 🧮"):
@@ -300,20 +325,24 @@ if len(submissions) >= len(TEAM_MEMBERS):
         st.markdown("""
         За да се осигураме дека секоја категорија тежи точно колку што е планирано, бодовите се нормализираат:
         
-        **1. Рангирање (Макс 35 Merit поени):**
+        **1. Рангирање (Макс 25 Merit поени):**
         - Секое 1во место носи 5 бода, 2ро место носи 4 бода ... 5то место носи 1 бод.
-        - `Ранк Merit = (Вкупно_Твои_Ранк_Бодови / Максимални_Можни_Бодови) * 35`
+        - `Ранк Merit = (Вкупно_Твои_Ранк_Бодови / Максимални_Можни_Бодови) * 25`
         
-        **2. Специфична Улога (Макс 20 Merit поени):**
+        **2. Специфична Улога (Макс 15 Merit поени):**
         - Секое гласање дека ја носиш улогата е 1 глас (бод).
-        - `Улога Merit = (Вкупно_Твои_Гласови / Број_На_Улоги) * 20`
+        - `Улога Merit = (Вкупно_Твои_Гласови / Број_На_Улоги) * 15`
         
-        **3. Скала (Макс 45 Merit поени):**
-        - Збир на оценките од слајдерите (1-10).
-        - `Скала Merit = (Збир_Оцени / Максимален_Можен_Збир) * 45`
+        **3. Скала (Макс 35 Merit поени):**
+        - Збир на оценките од слајдерите (1-10) за 10-те прашања.
+        - `Скала Merit = (Збир_Оцени / Максимален_Можен_Збир) * 35`
+        
+        **4. Придонес и Време (Макс 25 Merit поени):**
+        - Збир на оценките од слајдерите (1-10) за 3-те impact прашања.
+        - `Impact Merit = (Збир_Оцени / Максимален_Можен_Збир) * 25`
         
         **Пресметка на Удел (Equity %):**
-        - `Вкупен Твој Merit = Ранк Merit + Улога Merit + Скала Merit`
+        - `Вкупен Твој Merit = Ранк Merit + Улога Merit + Скала Merit + Impact Merit`
         - `Твој Удел % = (Вкупен Твој Merit / Збир од Вкупниот Merit на сите 5 луѓе во тимот) * 100`
         """)
     
@@ -364,11 +393,12 @@ if not st.session_state['read_explanation']:
     2. **Снаодливост и ризик:** Оние кои наоѓаат генијални (или 'hacker') решенија кога немаме буџет или време.
     3. **Борба за тимот:** Лидерите кои ги ставаат интересите на Findzzer и на тимот пред сопственото его.
     
-    Затоа, формата е поделена на 4 дела, специјално дизајнирани за овој стартап менталитет:
+    Затоа, формата е поделена на 5 дела, специјално дизајнирани за овој стартап менталитет:
     - **Дел 1: Рангирање од најдобар до најслаб** каде мораш брутално искрено да одлучиш кој е најдобар во специфична 'survival' вештина.
     - **Дел 2: Специфична стартап улога** каде бираш само една личност која одговара на описот.
-    - **Дел 3: Оценување на Квалитет (1-10)** за да се вреднува стабилноста, комуникацијата и стручноста.
-    - **Дел 4: Радикална Транспарентност** каде за секој еден член мораш да напишеш 2 реченици фидбек (Анонимно).
+    - **Дел 3: Оценување на Квалитет (1-10)** за да се вреднува стабилноста, комуникацијата и стручноста на дневна база.
+    - **Дел 4: Време, Придонес и Амбиција (1-10)** кој е најважниот чекор. Оценува кој е 'двигател' а кој 'поддршка', и колку време реално посветува.
+    - **Дел 5: Радикална Транспарентност** каде за секој еден член мораш да напишеш 2 реченици фидбек (Анонимно).
     
     *Сите гласови се строго анонимни. Системот не дозволува идентификација кој за кого како гласал, и алгоритмот за бодови скришно ги пресметува тежините на прашањата.*
     """)
@@ -404,6 +434,7 @@ with st.container():
             "rankings": {}, 
             "peer_selections": {}, 
             "scale_ratings": {member: {} for member in TEAM_MEMBERS},
+            "impact_ratings": {member: {} for member in TEAM_MEMBERS},
             "anonymous_feedback": {member: {} for member in TEAM_MEMBERS}
         }
         
@@ -459,7 +490,22 @@ with st.container():
                         form_data["scale_ratings"][member][item['q']] = val
                     
         st.markdown("---")
-        st.subheader("Дел 4: Радикална Транспарентност (Анонимен Текст)")
+        st.subheader("Дел 4: Време, Придонес и Амбиција (Клучни Стартап Метрики)")
+        st.caption("Оцени го СЕКОЈ член (вклучително и себеси) од 1 до 10. **(1 = Најслабо / Воопшто не се согласувам, 10 = Најдобро / Целосно се согласувам)**.")
+        
+        for item in IMPACT_QUESTIONS:
+            with st.expander(f"🔥 {item['q']}", expanded=True):
+                st.markdown(f"_{item['desc']}_")
+                st.write("")
+                cols = st.columns(len(TEAM_MEMBERS))
+                for idx, member in enumerate(TEAM_MEMBERS):
+                    with cols[idx]:
+                        st.markdown(f"**{member}** {'*(Ти)*' if member == evaluator else ''}")
+                        val = st.slider("", min_value=1, max_value=10, value=5, step=1, key=f"impact_{member}_{item['q']}")
+                        form_data["impact_ratings"][member][item['q']] = val
+                        
+        st.markdown("---")
+        st.subheader("Дел 5: Радикална Транспарентност (Анонимен Текст)")
         st.caption("Задолжително напишете по една реченица на двата отворени прашалници за секој член. Без навреди кон карактерот, само професионални стартап критики. Вашето име нема да се појави со коментарот.")
         
         for member in TEAM_MEMBERS:
@@ -497,7 +543,7 @@ with st.container():
                 break
                 
         if not candor_filled:
-            st.warning("За да поднесеш, мора да ги пополниш сите полиња со текст во Дел 4 (За сите луѓе).")
+            st.warning("За да поднесеш, мора да ги пополниш сите полиња со текст во Дел 5 (За сите луѓе).")
                 
         if ready_to_submit:
             if st.button("Испрати ја Анонимната Евалуација", type="primary"):

@@ -40,6 +40,12 @@ SCALE_QUESTIONS = [
     "Конзистентност во работата"
 ]
 
+IMPACT_QUESTIONS = [
+    "Тековна и Идна Временска Посветеност",
+    "Двигател на стартапот (Driver vs Fixer)",
+    "Досегашен мерлив придонес (Past Contribution)"
+]
+
 MOCK_STRENGTHS = [
     "Секогаш е тука кога најмногу гори.",
     "Пишува совршен код и брзо учи.",
@@ -65,9 +71,11 @@ def seed_data():
     
     for evaluator in TEAM_MEMBERS:
         data = {
+            "cofounder_count": random.randint(1, 3),
             "rankings": {},
             "peer_selections": {},
             "scale_ratings": {member: {} for member in TEAM_MEMBERS},
+            "impact_ratings": {member: {} for member in TEAM_MEMBERS},
             "anonymous_feedback": {member: {} for member in TEAM_MEMBERS}
         }
         
@@ -81,13 +89,19 @@ def seed_data():
         for q in PEER_QUESTIONS:
             data["peer_selections"][q] = random.choice(TEAM_MEMBERS)
             
-        # Scale & Feedback
+        # Scale & Impact & Feedback
         for member in TEAM_MEMBERS:
             for q in SCALE_QUESTIONS:
                 if member == evaluator:
                     data["scale_ratings"][member][q] = random.randint(7, 10)
                 else:
                     data["scale_ratings"][member][q] = random.randint(4, 10)
+                    
+            for q in IMPACT_QUESTIONS:
+                if member == evaluator:
+                    data["impact_ratings"][member][q] = random.randint(7, 10)
+                else:
+                    data["impact_ratings"][member][q] = random.randint(4, 10)
             
             # Anonymous Feedback
             data["anonymous_feedback"][member] = {
