@@ -100,8 +100,6 @@ def seed_data():
             for q in IMPACT_QUESTIONS:
                 if member == evaluator:
                     data["impact_ratings"][member][q] = random.randint(7, 10)
-                else:
-                    data["impact_ratings"][member][q] = random.randint(4, 10)
             
             # Anonymous Feedback
             data["anonymous_feedback"][member] = {

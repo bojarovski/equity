@@ -234,7 +234,9 @@ def calculate_results(submissions):
         weighted_rank_points = (self_rank * 0.2) + (peer_rank_avg * 0.8)
         weighted_scale_points = (self_scale * 0.2) + (peer_scale_avg * 0.8)
         weighted_vote_points = (self_vote * 0.2) + (peer_vote_avg * 0.8)
-        weighted_impact_points = (self_impact * 0.2) + (peer_impact_avg * 0.8)
+        
+        # Време и Придонес се исклучиво лични оцени (100% Self)
+        weighted_impact_points = self_impact
         
         MAX_RANK_RAW = len(RANKING_QUESTIONS) * num_members  
         MAX_SCALE_RAW = len(SCALE_QUESTIONS) * 10            
@@ -338,8 +340,8 @@ if len(submissions) >= len(TEAM_MEMBERS):
         - `Скала Merit = (Збир_Оцени / Максимален_Можен_Збир) * 35`
         
         **4. Придонес и Време (Макс 25 Merit поени):**
-        - Збир на оценките од слајдерите (1-10) за 3-те impact прашања.
-        - `Impact Merit = (Збир_Оцени / Максимален_Можен_Збир) * 25`
+        - Збир на оценките од слајдерите (1-10) за 3-те impact прашања. (Овие се лични прашања и бодовите доаѓаат 100% од твојот одговор).
+        - `Impact Merit = (Твои_Оцени / Максимален_Можен_Збир) * 25`
         
         **Пресметка на Удел (Equity %):**
         - `Вкупен Твој Merit = Ранк Merit + Улога Merit + Скала Merit + Impact Merit`
@@ -491,18 +493,14 @@ with st.container():
                     
         st.markdown("---")
         st.subheader("Дел 4: Време, Придонес и Амбиција (Клучни Стартап Метрики)")
-        st.caption("Оцени го СЕКОЈ член (вклучително и себеси) од 1 до 10. **(1 = Најслабо / Воопшто не се согласувам, 10 = Најдобро / Целосно се согласувам)**.")
+        st.caption("Овие 3 прашања се ЛИЧНИ и ги одговараш исклучиво за себе. Биди максимално реален и искрен. **(1 = Најслабо / Воопшто не се согласувам, 10 = Најдобро / Целосно се согласувам)**.")
         
         for item in IMPACT_QUESTIONS:
             with st.expander(f"🔥 {item['q']}", expanded=True):
                 st.markdown(f"_{item['desc']}_")
                 st.write("")
-                cols = st.columns(len(TEAM_MEMBERS))
-                for idx, member in enumerate(TEAM_MEMBERS):
-                    with cols[idx]:
-                        st.markdown(f"**{member}** {'*(Ти)*' if member == evaluator else ''}")
-                        val = st.slider("", min_value=1, max_value=10, value=5, step=1, key=f"impact_{member}_{item['q']}")
-                        form_data["impact_ratings"][member][item['q']] = val
+                val = st.slider(f"Твоја оцена ({evaluator}):", min_value=1, max_value=10, value=5, step=1, key=f"impact_{evaluator}_{item['q']}")
+                form_data["impact_ratings"][evaluator][item['q']] = val
                         
         st.markdown("---")
         st.subheader("Дел 5: Радикална Транспарентност (Анонимен Текст)")
