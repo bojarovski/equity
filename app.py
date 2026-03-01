@@ -359,8 +359,8 @@ if len(submissions) >= len(TEAM_MEMBERS):
         with st.expander(f"📌 {member} - Јавен Договор"):
             if member in submissions and "public_pact" in submissions[member] and "time_curr" in submissions[member]["public_pact"]:
                 pact = submissions[member]["public_pact"]
-                st.markdown(f"**Моментално време ({pact['time_curr']['val']} ч/неделно):** {pact['time_curr']['desc']}")
-                st.markdown(f"**Планирано време во иднина ({pact['time_fut']['val']} ч/неделно):** {pact['time_fut']['desc']}")
+                st.markdown(f"**Моментално време ({pact['time_curr']['val']} ч/дневно):** {pact['time_curr']['desc']}")
+                st.markdown(f"**Планирано време во иднина ({pact['time_fut']['val']} ч/дневно):** {pact['time_fut']['desc']}")
                 st.markdown(f"**Удел(Двигател) ({', '.join(pact['driver']['val'])}):** {pact['driver']['desc']}")
                 st.markdown(f"**Сопствен придонес досега ({pact['past']['val']}/10):** {pact['past']['desc']}")
                 st.markdown(f"**Жртвување за тимот ({pact['sacrifice']['val']}):** {pact['sacrifice']['desc']}")
@@ -515,11 +515,11 @@ with st.container():
         st.info("ВНИМАНИЕ: Овој дел НЕ е анонимен! Одговорите овде претставуваат твој јавен 'договор' со тимот кој ќе биде прикажан на финалната табела. Овие прашања ги одговараш исклучиво за себе.")
         
         with st.expander("🔥 Тековна и Идна Временска Посветеност", expanded=True):
-            st.markdown("Колку време неделно реално посветуваш моментално, и колку планираш/имаш капацитет да посветиш во иднина?")
-            val_time_curr = st.slider("Моментални часови неделно:", 1, 16, 8, key="time_curr")
-            desc_time_curr = st.text_input("Кратко објаснување (На што ги трошиш?):", key="desc_tc")
-            val_time_fut = st.slider("Идни часови неделно (Капацитет):", 1, 16, 8, key="time_fut")
-            desc_time_fut = st.text_input("Кратко објаснување (Зошто? Дали ќе одиш full-time?):", key="desc_tf")
+            st.markdown("Колку време дневно реално посветуваш моментално на апликацијата, и колку планираш/имаш капацитет да посветиш во иднина?")
+            val_time_curr = st.slider("Моментални часови дневно:", 1, 16, 4, key="time_curr")
+            desc_time_curr = st.text_input("Кратко објаснување:", key="desc_tc")
+            val_time_fut = st.slider("Идни часови дневно (Капацитет):", 1, 16, 8, key="time_fut")
+            desc_time_fut = st.text_input("Кратко објаснување:", key="desc_tf")
             
         with st.expander("🔥 Двигател на стартапот (Driver vs Fixer)", expanded=True):
             st.markdown("Дали си 'двигател' на идеите или си повеќе техничка поддршка/извршител?")
