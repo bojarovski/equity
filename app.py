@@ -451,7 +451,7 @@ with st.container():
         st.caption("Кликнете и влечете ги имињата во кутијата или селектирајте ги по правилен редослед. **Важно: Првото име што ќе го избереш го добива 1-во место (Најмногу поени), а последното име е на 5-то место (Најмалку поени).** Задожително селектирај ги сите 5 луѓе за секое прашање според заслуга.")
         
         for item in RANKING_QUESTIONS:
-            st.caption(f"_{item['desc']}_")
+            st.caption(f"{item['desc']}")
             # In Streamlit, multiselect enforces order of selection.
             ranking_choice = st.multiselect(
                 "Избери ги од 1во до 5то место по редослед:", 
@@ -472,7 +472,7 @@ with st.container():
         
         for item in PEER_QUESTIONS:
             st.markdown(f"#### {item['q']}")
-            st.caption(f"_{item['desc']}_")
+            st.caption(f"{item['desc']}")
             val = st.radio("Избери:", TEAM_MEMBERS, index=None, horizontal=True, key=f"peer_{item['q']}")
             form_data["peer_selections"][item['q']] = val
             st.write("")
@@ -483,7 +483,7 @@ with st.container():
         
         for item in SCALE_QUESTIONS:
             with st.expander(f"📌 {item['q']}", expanded=True):
-                st.markdown(f"_{item['desc']}_")
+                st.markdown(f"{item['desc']}")
                 st.write("")
                 cols = st.columns(len(TEAM_MEMBERS))
                 for idx, member in enumerate(TEAM_MEMBERS):
@@ -498,7 +498,7 @@ with st.container():
         
         for item in IMPACT_QUESTIONS:
             with st.expander(f"🔥 {item['q']}", expanded=True):
-                st.markdown(f"_{item['desc']}_")
+                st.markdown(f"{item['desc']}")
                 st.write("")
                 val = st.slider(f"Твоја оцена ({evaluator}):", min_value=1, max_value=10, value=5, step=1, key=f"impact_{evaluator}_{item['q']}")
                 form_data["impact_ratings"][evaluator][item['q']] = val
