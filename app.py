@@ -303,7 +303,7 @@ if st.sidebar.button("Избриши ги сите податоци (Reset)"):
     st.rerun()
 
 if st.sidebar.button("Пополни со Тест Податоци (Seed)"):
-    seed.seed_database()
+    seed.seed_data()
     st.sidebar.success("Вметнато е тест поднесување за сите членови!")
     st.rerun()
     
