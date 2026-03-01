@@ -392,7 +392,7 @@ with st.container():
         st.markdown("---")
         st.subheader("Дел 0: Структура на Основачи")
         st.caption("Како што кажа Марио, секој тим мора да има дефинирана бројка на 'Co-Founders' за пред инвеститори и апликации.")
-        form_data["cofounder_count"] = st.slider("Според тебе, колку лидери (Co-Founders) треба да има Findzzer?", min_value=1, max_value=len(TEAM_MEMBERS), value=2, step=1)
+        form_data["cofounder_count"] = st.slider("Според тебе, колку лидери (Co-Founders) треба да има Findzzer?", min_value=1, max_value=3, value=2, step=1)
         
         st.markdown("---")
         st.subheader("Дел 1: Рангирање од 1 до 5 (Најдобриот прв)")
