@@ -2,6 +2,24 @@ import streamlit as st
 import sqlite3
 import json
 import pandas as pd
+from deep_translator import GoogleTranslator
+
+def anonymize_feedback_with_ai(strength, weakness):
+    try:
+        # Double translation trick (MK -> EN -> MK) to destroy original writing style/fingerprint completely for free
+        translator_to_en = GoogleTranslator(source='mk', target='en')
+        translator_to_mk = GoogleTranslator(source='en', target='mk')
+        
+        eng_strength = translator_to_en.translate(strength)
+        eng_weakness = translator_to_en.translate(weakness)
+        
+        anon_strength = translator_to_mk.translate(eng_strength)
+        anon_weakness = translator_to_mk.translate(eng_weakness)
+        
+        return anon_strength, anon_weakness
+    except Exception as e:
+        print(f"Translation Anonymizer Error: {e}")
+        return strength, weakness
 
 # --- CONFIGURATION & BRANDING ---
 st.set_page_config(
@@ -476,7 +494,13 @@ with st.container():
                 
         if ready_to_submit:
             if st.button("Испрати ја Анонимната Евалуација", type="primary"):
-                save_submission(evaluator, form_data)
+                with st.spinner("⏳ AI анонимизирање на фидбекот и зачувување (може да потрае 10-15 секунди)..."):
+                    for m, fb in form_data["anonymous_feedback"].items():
+                        s, w = anonymize_feedback_with_ai(fb["strength"], fb["weakness"])
+                        form_data["anonymous_feedback"][m]["strength"] = s
+                        form_data["anonymous_feedback"][m]["weakness"] = w
+                        
+                    save_submission(evaluator, form_data)
                 st.success("Успешно поднесено! Ви благодариме.")
                 st.rerun()
 
