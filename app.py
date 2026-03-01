@@ -194,16 +194,21 @@ def calculate_results(submissions):
         if "public_pact" in data and evaluator in TEAM_MEMBERS:
             pact = data["public_pact"]
             impact_sum = 0
-            # Current time: 1-16 -> Up to 10 points
+            
+            # ТЕЖИНИ:
+            # 1. Current time: 1-16 hours -> Max 10 points
             impact_sum += pact["time_curr"]["val"] * (10 / 16)
-            # Future time: 1-16 -> Up to 10 points 
-            impact_sum += pact["time_fut"]["val"] * (10 / 16)
-            # Past contribution: 1-10 -> Up to 10 points
+            
+            # Future time (Капацитет) -> Се чува само како информација/договор, НО НЕ ДОНЕСУВА ПОЕНИ.
+            
+            # 2. Past contribution: 1-10 -> Max 10 points
             impact_sum += pact["past"]["val"]
-            # Sacrifice: Yes = 5, No = 0
+            
+            # 3. Sacrifice: Yes = 5 points, No = 0 points
             if pact["sacrifice"]["val"] == "Да":
                 impact_sum += 5
-            # Driver roles: 1 pt per role, max 5 points
+                
+            # 4. Driver roles: 1 point per selected role -> Max 5 points
             impact_sum += min(len(pact["driver"]["val"]), 5)
             
             results[evaluator]["impact_self"] = impact_sum
@@ -244,7 +249,7 @@ def calculate_results(submissions):
         MAX_RANK_RAW = len(RANKING_QUESTIONS) * num_members  
         MAX_SCALE_RAW = len(SCALE_QUESTIONS) * 10            
         MAX_VOTES_RAW = len(PEER_QUESTIONS)                  
-        MAX_IMPACT_RAW = 40
+        MAX_IMPACT_RAW = 30
         
         score_rank = (weighted_rank_points / MAX_RANK_RAW) * 25 if MAX_RANK_RAW else 0
         score_scale = (weighted_scale_points / MAX_SCALE_RAW) * 35 if MAX_SCALE_RAW else 0
@@ -343,8 +348,10 @@ if len(submissions) >= len(TEAM_MEMBERS):
         - `Скала Merit = (Збир_Оцени / Максимален_Можен_Збир) * 35`
         
         **4. Придонес и Време (Макс 25 Merit поени):**
-        - Збир на оценките од слајдерите (1-10) за 4-те impact прашања. (Овие се лични прашања и бодовите доаѓаат 100% од твојот одговор).
-        - `Impact Merit = (Твои_Оцени / Максимален_Можен_Збир) * 25`
+        - Добиените оценки од твојот Јавен Договор се претвораат во поени (Максимум 30 сурови поени).
+        - Тековно време: до 10 поени, Минат придонес: до 10 поени, Жртвување "Да": 5 поени, Двигател: 1 поен за секоја улога до макс 5.
+        - *Идните (планирани) часови НЕ носат поени, тие се само формално ветување.*
+        - `Impact Merit = (Твои_Оцени / 30) * 25`
         
         **Пресметка на Удел (Equity %):**
         - `Вкупен Твој Merit = Ранк Merit + Улога Merit + Скала Merit + Impact Merit`
